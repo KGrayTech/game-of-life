@@ -1,55 +1,77 @@
 const VertexShaderSource = `
   precision mediump float;
 
-  attribute vec2 aPosition;
-  attribute vec2 aTexCoord;
-  uniform vec2 uResolution;
-  varying vec2 vTexCoord;
+  attribute vec4 aPosition;
 
+  uniform float uCellWidth;
+  uniform float uCellHeight;
+  uniform mat4 uTransformMatrix;
+
+  varying float vWidth;
+  varying float vHeight;
+  varying vec2 vTexCoord; 
+  varying vec2 neighbors[8];
+   
   void main() {
-    vec2 clipSpace = aPosition.xy * 2.0 - 1.0;
-    gl_Position = vec4(clipSpace, 0.0, 1.0);
-    vTexCoord = aTexCoord;
+    gl_Position = uTransformMatrix * aPosition;   
+
+    vTexCoord = (aPosition.xy + vec2(1.0, 1.0)) * 0.5;
+  
+    neighbors[0] = vec2(uCellWidth, uCellHeight);
+    neighbors[1] = vec2(-uCellWidth, -uCellHeight);
+    neighbors[2] = vec2(uCellWidth, -uCellHeight);
+    neighbors[3] = vec2(-uCellWidth, uCellHeight);
+    neighbors[4] = vec2(0, uCellHeight);
+    neighbors[5] = vec2(uCellWidth, 0);
+    neighbors[6] = vec2(0, -uCellHeight);
+    neighbors[7] = vec2(-uCellWidth, 0);
+
+    vWidth = uCellWidth;
+    vHeight = uCellHeight;
   }
 `;
 
-const FragmentShaderSource = `
+const UpdateFragmentShaderSource = `
   precision mediump float;
 
-  varying vec2 vTexCoord;
   uniform sampler2D uTexture;
-  uniform vec2 uResolution;
-  uniform vec2 normalRes;
-
+  uniform vec2 uRevive;
+  
+  varying float vWidth, vHeight;
+  varying vec2 vTexCoord;
+  varying vec2 neighbors[8];
+ 
   void main() {
-    vec2 uv = vTexCoord;
-
-    uv.y = 1.0 - uv.y;     
-
-    vec4 col = texture2D(uTexture, uv);
-    float a = col.r;
-
-    float num = 0.0;
-    for (float i = -1.0; i < 2.0; i++) {
-      for (float j = -1.0; j < 2.0; j++) {
-        float x = uv.x + i * normalRes.x; 
-        float y = uv.y + j * normalRes.y;
-
-        num += texture2D(uTexture, vec2(x, y)).r;
-      }
+    int count = 0;
+    
+    for (int i = 0; i <= 7; i++) {
+      if (texture2D(uTexture, vTexCoord + neighbors[i]).g == 1.0) count += 1; 
     }
 
-    num -= a;
-
-    if (a > 0.5) {
-      if (num < 1.5) a = 0.0;
-      if (num > 3.5) a = 0.0;
-    } else {
-      if (num > 2.5 && num < 3.5)  a = 1.0;
-    }
-
-    gl_FragColor = vec4(a, a, a, 1.0);
+    float g = texture2D(uTexture, vTexCoord).g;
+    if ((count == 3) || (g == 1.0 && count == 2) || (abs(vTexCoord.x - uRevive.x) < vWidth * 5.0 &&
+      abs(vTexCoord.y - uRevive.y) < vHeight * 5.0))
+      gl_FragColor = vec4(0.5, 1, 0.2, 1);
+    else if (g > 0.0)
+      gl_FragColor = vec4(0.1, g - 0.7, 0.2, 1);
+    else
+      gl_FragColor = vec4(0.1, 0.0, 0.2, 1);
   }
 `;
 
-export { VertexShaderSource, FragmentShaderSource };
+const DisplayFragmentShaderSource = `
+   precision mediump float;
+    
+   uniform sampler2D uTexture; 
+   varying vec2 vTexCoord;
+  
+   void main() {
+    gl_FragColor = texture2D(uTexture, vTexCoord);
+   }
+`;
+
+export {
+  DisplayFragmentShaderSource,
+  UpdateFragmentShaderSource,
+  VertexShaderSource,
+};

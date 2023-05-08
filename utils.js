@@ -46,46 +46,47 @@ const createProgram = (gl, vertexShader, fragmentShader) => {
   return program;
 };
 
-const generateRandomTextureState = (size) => {
-  const state = new Uint8Array(size * size * 4);
+const generateRandomTextureState = (width, height) => {
+  const state = new Uint8Array(width * height * 4);
 
-  for (let i = 0; i < size * size * 4; i += 4) {
-    const alive = Math.random() > 0.5 ? 255 : 0;
-
-    state[i] = alive;
-    state[i + 1] = alive;
-    state[i + 2] = alive;
+  for (let i = 0; i < state.length; i += 4) {
+    state[i + 1]  = Math.random() > 0.5 ? 255 : 0;
     state[i + 3] = 255;
   }
 
   return state;
 };
 
-const createTexture = (glCtx, size, isSetRandomState = false) => {
-  const initialState = isSetRandomState 
-    ? generateRandomTextureState(size) 
+const createTexture = (glCtx, width, height, isHasRandomState = false) => {
+  const initialState = isHasRandomState 
+    ? generateRandomTextureState(width, height) 
     : null;
 
   const texture = glCtx.createTexture();
   glCtx.bindTexture(glCtx.TEXTURE_2D, texture);
-  glCtx.texImage2D(
-    glCtx.TEXTURE_2D,
-    0,
-    glCtx.RGBA,
-    size,
-    size,
-    0,
-    glCtx.RGBA,
-    glCtx.UNSIGNED_BYTE,
-    initialState,
-  );
-
-  glCtx.texParameteri(glCtx.TEXTURE_2D, glCtx.TEXTURE_WRAP_S, glCtx.CLAMP_TO_EDGE);
-  glCtx.texParameteri(glCtx.TEXTURE_2D, glCtx.TEXTURE_WRAP_T, glCtx.CLAMP_TO_EDGE);
-  glCtx.texParameteri(glCtx.TEXTURE_2D, glCtx.TEXTURE_MIN_FILTER, glCtx.LINEAR);
-  glCtx.texParameteri(glCtx.TEXTURE_2D, glCtx.TEXTURE_MAG_FILTER, glCtx.LINEAR);
+  glCtx.texImage2D(glCtx.TEXTURE_2D, 0, glCtx.RGBA, width, height, 0, glCtx.RGBA, glCtx.UNSIGNED_BYTE, initialState);
+  glCtx.texParameteri(glCtx.TEXTURE_2D, glCtx.TEXTURE_MIN_FILTER, glCtx.NEAREST);
+  glCtx.texParameteri(glCtx.TEXTURE_2D, glCtx.TEXTURE_MAG_FILTER, glCtx.NEAREST);
+  glCtx.texParameteri(glCtx.TEXTURE_2D, glCtx.TEXTURE_WRAP_S, glCtx.REPEAT);
+  glCtx.texParameteri(glCtx.TEXTURE_2D, glCtx.TEXTURE_WRAP_T, glCtx.REPEAT);
+  glCtx.bindTexture(glCtx.TEXTURE_2D, null);
 
   return texture;
 }
 
-export { createTexture, createProgram, createShader, initWebGL };
+const createIdentityMatrix = () => {
+  return [
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1
+  ]
+}
+
+export { 
+  createIdentityMatrix,
+  createTexture, 
+  createProgram, 
+  createShader, 
+  initWebGL 
+};
