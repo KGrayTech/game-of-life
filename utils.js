@@ -76,7 +76,6 @@ const createTexture = (glCtx, width, height, isHasRandomState = false) => {
 
 const getRelativeMousePos = (element, event) => {
   const elementBoundingRect = element.getBoundingClientRect();
-
   const xPos = event.clientX - elementBoundingRect.left;
   const yPos = event.clientY - elementBoundingRect.top;
   

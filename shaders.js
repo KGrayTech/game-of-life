@@ -34,7 +34,7 @@ const UpdateFragmentShaderSource = `
   precision mediump float;
 
   uniform sampler2D uTexture;
-  uniform vec2 uRevive;
+  uniform vec2 uAliveCell;
   
   varying float vWidth, vHeight;
   varying vec2 vTexCoord;
@@ -48,8 +48,8 @@ const UpdateFragmentShaderSource = `
     }
 
     float g = texture2D(uTexture, vTexCoord).g;
-    if ((count == 3) || (g == 1.0 && count == 2) || (abs(vTexCoord.x - uRevive.x) < vWidth * 5.0 &&
-      abs(vTexCoord.y - uRevive.y) < vHeight * 5.0))
+    if ((count == 3) || (g == 1.0 && count == 2) || (abs(vTexCoord.x - uAliveCell.x) < vWidth * 5.0 &&
+      abs(vTexCoord.y - uAliveCell.y) < vHeight * 5.0))
       gl_FragColor = vec4(0.9, 1.0, 0.9, 1);
     else
       gl_FragColor = vec4(0.2, 0.1, 0.2, 1);

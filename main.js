@@ -129,7 +129,7 @@ const initApp = (canvas) => {
   const frameBuffer = glCtx.createFramebuffer();
   const cellWidthLoc = glCtx.getUniformLocation(updateShaderProgram, "uCellWidth");
   const cellHeightLoc = glCtx.getUniformLocation(updateShaderProgram, "uCellHeight");
-  const reviveLoc = glCtx.getUniformLocation(updateShaderProgram, "uRevive");
+  const aliveCellLoc = glCtx.getUniformLocation(updateShaderProgram, "uAliveCell");
   glCtx.activeTexture(glCtx.TEXTURE0);
 
   const FPS = 60;
@@ -148,17 +148,16 @@ const initApp = (canvas) => {
       glCtx.useProgram(updateShaderProgram);
       glCtx.uniform1f(cellWidthLoc, 1.0 / width);
       glCtx.uniform1f(cellHeightLoc, 1.0 / height);
-      glCtx.uniform2f(reviveLoc, -1, -1);
 
-      let revive = [-1, -1];
+      let aliveCell = [-1, -1];
       if (isDrawing) {
         if (aliveCells.length > 0) {
           const currentCell = aliveCells.shift();
-          revive[0] = (currentCell.xPos / width);
-          revive[1] = 1.0 - (currentCell.yPos / height);
+          aliveCell[0] = (currentCell.xPos / width);
+          aliveCell[1] = 1.0 - (currentCell.yPos / height);
         }
       } 
-      glCtx.uniform2f(reviveLoc, revive[0], revive[1]);
+      glCtx.uniform2f(aliveCellLoc, aliveCell[0], aliveCell[1]);
 
       glCtx.bindFramebuffer(glCtx.FRAMEBUFFER, frameBuffer);
       glCtx.framebufferTexture2D(glCtx.FRAMEBUFFER, glCtx.COLOR_ATTACHMENT0, glCtx.TEXTURE_2D, displayTexture, 0);
