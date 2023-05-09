@@ -7,20 +7,93 @@ import {
 } from './shaders';
 
 import { 
-  createIdentityMatrix,
+  getRelativeMousePos,
   createTexture,
   createProgram, 
   createShader, 
   initWebGL 
 } from "./utils";
 
-const canvasWidth = 1024;
-const canvasHeight = 1024;
+let width = 1024;
+let height = 768;
+let isRandomGridInit = false;
 
-const initApp = () => {
+let isDrawing = false;
+let aliveCells = [];
+
+const setupControlButtons = (canvas) => {
+  const clearGridBtn = document.getElementById("clearGridBtn");
+  const randomGridBtn = document.getElementById("randomGridBtn");
+  
+  clearGridBtn.addEventListener("click", () => {
+    isRandomGridInit = false;
+    initApp(canvas);
+  });
+
+  randomGridBtn.addEventListener("click", () => {
+    isRandomGridInit = true;
+    initApp(canvas);
+  });
+}
+
+const setupControlSize = (canvas) => {
+  const widthInput = document.getElementById("widthInput");
+  widthInput.value = width;
+
+  const heightInput = document.getElementById("heightInput");
+  heightInput.value = height;
+
+  const updateSizeBtn = document.getElementById("updateSizeBtn");
+  updateSizeBtn.addEventListener(("click"), () => {
+    const updatedWidth = widthInput.value;
+    const updatedHeight = heightInput.value;
+
+    if (updatedWidth !== width || updatedHeight !== height) {
+      width = updatedWidth;
+      height = updatedHeight;
+
+      initApp(canvas);
+      return;
+    }
+  });
+}
+
+const setupDrawingCells = (canvas) => {
+  const startDraw = (event) => { 
+    isDrawing = true 
+    aliveCells.push(getRelativeMousePos(canvas, event));
+  };
+
+  const draw = (event) => {
+     if (isDrawing) aliveCells.push(getRelativeMousePos(canvas, event));
+  }
+
+  const stopDraw = () => { 
+    aliveCells = [];
+    isDrawing = false 
+  };
+
+  canvas.addEventListener("mousedown", startDraw);
+  canvas.addEventListener("mousemove", draw);
+  canvas.addEventListener("mouseup", stopDraw);
+  canvas.addEventListener("mouseleave", stopDraw);
+}
+
+
+const setup = () => {
   const canvas = document.getElementById("app-canvas");
-  canvas.width = canvasWidth; //window.innerWidth;
-  canvas.height = canvasHeight; //window.innerHeight;
+  
+  setupControlButtons(canvas);
+  setupControlSize(canvas);
+  setupDrawingCells(canvas);
+  
+  initApp(canvas);
+}
+
+
+const initApp = (canvas) => {
+  canvas.width = width; 
+  canvas.height = height;
 
   const glCtx = initWebGL(canvas);
   if (!glCtx) return;
@@ -35,8 +108,8 @@ const initApp = () => {
   const displayFragmentShader = createShader(glCtx, glCtx.FRAGMENT_SHADER, DisplayFragmentShaderSource);
   const displayShaderProgram = createProgram(glCtx, displayVertexShader, displayFragmentShader);
 
-  let updateTexture = createTexture(glCtx, canvasWidth, canvasHeight, true);
-  let displayTexture = createTexture(glCtx, canvasWidth, canvasHeight);
+  let updateTexture = createTexture(glCtx, width, height, isRandomGridInit);
+  let displayTexture = createTexture(glCtx, width, height);
  
   const vertices = [
      1.0,  1.0, 
@@ -57,11 +130,9 @@ const initApp = () => {
   const cellWidthLoc = glCtx.getUniformLocation(updateShaderProgram, "uCellWidth");
   const cellHeightLoc = glCtx.getUniformLocation(updateShaderProgram, "uCellHeight");
   const reviveLoc = glCtx.getUniformLocation(updateShaderProgram, "uRevive");
-  const transformMatrixLoc = glCtx.getUniformLocation(updateShaderProgram, "uTransformMatrix");
-  const displayTransformMatrixLoc = glCtx.getUniformLocation(displayShaderProgram, "uTransformMatrix");
   glCtx.activeTexture(glCtx.TEXTURE0);
 
-  const FPS = 144;
+  const FPS = 60;
   const millisecondsPerFrame = 1000 / FPS;
   let lastFrameTime = 0;
 
@@ -71,18 +142,27 @@ const initApp = () => {
     const deltaTime = currentTime - lastFrameTime;
 
     if (deltaTime > millisecondsPerFrame) {
-
       glCtx.clearColor(0.0, 0.0, 0.0, 1.0);
       glCtx.clear(glCtx.COLOR_BUFFER_BIT);
 
       glCtx.useProgram(updateShaderProgram);
-      glCtx.uniform1f(cellWidthLoc, 1.0 / canvas.width);
-      glCtx.uniform1f(cellHeightLoc, 1.0 / canvas.width);
-      glCtx.uniformMatrix4fv(transformMatrixLoc, glCtx.FALSE, createIdentityMatrix());
+      glCtx.uniform1f(cellWidthLoc, 1.0 / width);
+      glCtx.uniform1f(cellHeightLoc, 1.0 / height);
+      glCtx.uniform2f(reviveLoc, -1, -1);
+
+      let revive = [-1, -1];
+      if (isDrawing) {
+        if (aliveCells.length > 0) {
+          const currentCell = aliveCells.shift();
+          revive[0] = (currentCell.xPos / width);
+          revive[1] = 1.0 - (currentCell.yPos / height);
+        }
+      } 
+      glCtx.uniform2f(reviveLoc, revive[0], revive[1]);
 
       glCtx.bindFramebuffer(glCtx.FRAMEBUFFER, frameBuffer);
       glCtx.framebufferTexture2D(glCtx.FRAMEBUFFER, glCtx.COLOR_ATTACHMENT0, glCtx.TEXTURE_2D, displayTexture, 0);
-      glCtx.viewport(0, 0, canvasWidth, canvasHeight);
+      glCtx.viewport(0, 0, width, height);
       glCtx.bindTexture(glCtx.TEXTURE_2D, updateTexture);
       glCtx.drawArrays(glCtx.TRIANGLE_STRIP, 0, 4);
       glCtx.useProgram(null);
@@ -90,8 +170,7 @@ const initApp = () => {
       glCtx.bindFramebuffer(glCtx.FRAMEBUFFER, null);
 
       glCtx.useProgram(displayShaderProgram);
-      glCtx.viewport(0, 0, canvasWidth, canvasHeight);
-      glCtx.uniformMatrix4fv(displayTransformMatrixLoc, glCtx.FALSE, createIdentityMatrix());
+      glCtx.viewport(0, 0, width, height);
       glCtx.bindTexture(glCtx.TEXTURE_2D, updateTexture);
       glCtx.drawArrays(glCtx.TRIANGLE_STRIP, 0, 4);
       glCtx.bindTexture(glCtx.TEXTURE_2D, null);
@@ -106,4 +185,4 @@ const initApp = () => {
   requestAnimationFrame(render);
 };
 
-initApp();
+setup();

@@ -5,7 +5,6 @@ const VertexShaderSource = `
 
   uniform float uCellWidth;
   uniform float uCellHeight;
-  uniform mat4 uTransformMatrix;
 
   varying float vWidth;
   varying float vHeight;
@@ -13,7 +12,7 @@ const VertexShaderSource = `
   varying vec2 neighbors[8];
    
   void main() {
-    gl_Position = uTransformMatrix * aPosition;   
+    gl_Position = aPosition;   
 
     vTexCoord = (aPosition.xy + vec2(1.0, 1.0)) * 0.5;
   
@@ -51,11 +50,9 @@ const UpdateFragmentShaderSource = `
     float g = texture2D(uTexture, vTexCoord).g;
     if ((count == 3) || (g == 1.0 && count == 2) || (abs(vTexCoord.x - uRevive.x) < vWidth * 5.0 &&
       abs(vTexCoord.y - uRevive.y) < vHeight * 5.0))
-      gl_FragColor = vec4(0.5, 1, 0.2, 1);
-    else if (g > 0.0)
-      gl_FragColor = vec4(0.1, g - 0.7, 0.2, 1);
+      gl_FragColor = vec4(0.9, 1.0, 0.9, 1);
     else
-      gl_FragColor = vec4(0.1, 0.0, 0.2, 1);
+      gl_FragColor = vec4(0.2, 0.1, 0.2, 1);
   }
 `;
 

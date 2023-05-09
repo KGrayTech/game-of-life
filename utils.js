@@ -1,5 +1,5 @@
 const initWebGL = (canvas) => {
-  const glCtx = canvas.getContext("webgl");
+  const glCtx = canvas.getContext("webgl2");
 
   if (!glCtx) {
     alert("Sorry, your device or browser not support WebGL");
@@ -50,7 +50,7 @@ const generateRandomTextureState = (width, height) => {
   const state = new Uint8Array(width * height * 4);
 
   for (let i = 0; i < state.length; i += 4) {
-    state[i + 1]  = Math.random() > 0.5 ? 255 : 0;
+    state[i + 1] = Math.random() > 0.5 ? 255 : 0;
     state[i + 3] = 255;
   }
 
@@ -74,17 +74,17 @@ const createTexture = (glCtx, width, height, isHasRandomState = false) => {
   return texture;
 }
 
-const createIdentityMatrix = () => {
-  return [
-    1, 0, 0, 0,
-    0, 1, 0, 0,
-    0, 0, 1, 0,
-    0, 0, 0, 1
-  ]
+const getRelativeMousePos = (element, event) => {
+  const elementBoundingRect = element.getBoundingClientRect();
+
+  const xPos = event.clientX - elementBoundingRect.left;
+  const yPos = event.clientY - elementBoundingRect.top;
+  
+  return {xPos: xPos, yPos: yPos}
 }
 
 export { 
-  createIdentityMatrix,
+  getRelativeMousePos,
   createTexture, 
   createProgram, 
   createShader, 
